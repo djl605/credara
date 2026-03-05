@@ -2,7 +2,10 @@ import dotenv from "dotenv";
 import path from "node:path";
 import pg from "pg";
 
-dotenv.config({ path: path.resolve(import.meta.dirname, "../../.env.test"), override: true });
+dotenv.config({
+  path: path.resolve(import.meta.dirname, "../../.env.test"),
+  override: true,
+});
 
 const dbName = "credara_test";
 const baseUrl = process.env.DATABASE_URL!.replace(`/${dbName}`, "/postgres");

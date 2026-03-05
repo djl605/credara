@@ -16,9 +16,7 @@ function isFastifyValidationError(
   return "validation" in error && "statusCode" in error;
 }
 
-function hasStatusCode(
-  error: Error,
-): error is Error & { statusCode: number } {
+function hasStatusCode(error: Error): error is Error & { statusCode: number } {
   return "statusCode" in error;
 }
 
@@ -41,8 +39,7 @@ export function errorHandler(
   }
 
   const statusCode = hasStatusCode(error) ? error.statusCode : 500;
-  const message =
-    statusCode >= 500 ? "Internal server error" : error.message;
+  const message = statusCode >= 500 ? "Internal server error" : error.message;
 
   if (statusCode >= 500) {
     request.log.error(error);
