@@ -238,24 +238,16 @@ The session is scoped to a specific school+role context, chosen at login. `reque
 | class_id   | uuid | FK → classes, PK |
 | student_id | uuid | FK → users, PK   |
 
-**skill_domains**
-
-| Column     | Type         | Notes            |
-| ---------- | ------------ | ---------------- |
-| id         | uuid         | PK               |
-| name       | varchar(100) | unique, not null |
-| created_at | timestamptz  | default now()    |
-
 **skills**
 
-| Column     | Type         | Notes                        |
-| ---------- | ------------ | ---------------------------- |
-| id         | uuid         | PK                           |
-| name       | varchar(100) | not null                     |
-| domain_id  | uuid         | FK → skill_domains, not null |
-| created_at | timestamptz  | default now()                |
+| Column     | Type              | Notes         |
+| ---------- | ----------------- | ------------- |
+| id         | uuid              | PK            |
+| name       | varchar(100)      | not null      |
+| domain     | skill_domain enum | not null      |
+| created_at | timestamptz       | default now() |
 
-Unique constraint on (name, domain_id).
+Unique constraint on (name, domain). Skill domains are enforced via the `skill_domain` enum rather than a separate table — they are a small, stable set baked into the curriculum.
 
 **lessons**
 
@@ -278,7 +270,7 @@ Unique constraint on (name, domain_id).
 | lesson_id | uuid | FK → lessons, PK |
 | skill_id  | uuid | FK → skills, PK  |
 
-Skills link to domains, so lesson → domain tagging is derived through lesson_skills → skills → skill_domains.
+Skills link to domains, so lesson → domain tagging is derived through lesson_skills → skills.domain.
 
 **media_sources**
 
@@ -467,8 +459,8 @@ DELETE /api/classes/:id/students/:studentId  # remove student
 
 ```
 GET    /api/skill-domains           # list all domains
-POST   /api/skill-domains           # superadmin: create domain
-GET    /api/skill-domains/:id/skills # list skills in domain
+GET    /api/skill-domains           # list all domains (returns enum values)
+GET    /api/skill-domains/:domain/skills # list skills in domain
 POST   /api/skills                  # superadmin: create skill
 ```
 
@@ -544,7 +536,7 @@ POST   /api/submissions/:id/grade                        # teacher grades (score
 ```
 GET    /api/students/:id/progress                  # overall mastery, domain breakdown, skill breakdown
 GET    /api/classes/:id/progress                   # class averages, per-student mastery
-GET    /api/classes/:id/progress/:domainId         # domain-specific with Big 5 breakdown
+GET    /api/classes/:id/progress/:domain            # domain-specific with Big 5 breakdown
 ```
 
 ### Badges
@@ -740,8 +732,7 @@ npx drizzle-kit migrate
 
 Seed:
 
-- Skill domains (Media Literacy, Critical Thinking, Reading Comprehension, Written Expression, Digital Citizenship, AI Literacy)
-- A few skills per domain
+- A few skills per domain (domains are defined by the `skill_domain` enum)
 - A test school
 - One user of each role (for development)
 - A couple of badge definitions
@@ -750,13 +741,13 @@ Seed:
 
 #### Automated Verification:
 
-- [ ] Migration runs cleanly against an empty database
-- [ ] `npm run seed` populates seed data without errors
-- [ ] Schema matches all tables defined in the plan
+- [x] Migration runs cleanly against an empty database
+- [x] `npm run seed` populates seed data without errors
+- [x] Schema matches all tables defined in the plan
 
 #### Manual Verification:
 
-- [ ] Tables visible in psql with correct columns, types, and constraints
+- [x] Tables visible in psql with correct columns, types, and constraints
 
 **Implementation Note**: Pause for confirmation before proceeding.
 
@@ -914,7 +905,7 @@ DELETE /api/classes/:id/students/:studentId — unenroll
 
 ### Overview
 
-Implement the content layer: skill domains/skills, lesson CRUD with filtering/sorting, collections, and teacher favorites.
+Implement the content layer: skills, lesson CRUD with filtering/sorting, collections, and teacher favorites.
 
 ### Changes Required:
 
@@ -923,9 +914,8 @@ Implement the content layer: skill domains/skills, lesson CRUD with filtering/so
 **File:** `src/features/skills/routes.ts`
 
 ```
-GET    /api/skill-domains
-POST   /api/skill-domains              — superadmin
-GET    /api/skill-domains/:id/skills
+GET    /api/skill-domains              — returns enum values
+GET    /api/skill-domains/:domain/skills — list skills in domain
 POST   /api/skills                     — superadmin
 ```
 
@@ -941,7 +931,7 @@ PATCH  /api/lessons/:id                — superadmin
 DELETE /api/lessons/:id                — superadmin
 ```
 
-Filtering: `subject`, `grade` (any overlap with grade_levels array), `domain` (via lesson_skills → skills → domain), `collection`.
+Filtering: `subject`, `grade` (any overlap with grade_levels array), `domain` (via lesson_skills → skills.domain), `collection`.
 Sorting: `most_recent` (created_at desc), `grade_level`, `domain`.
 `most_assigned` requires a count join on assignments — implement as a subquery.
 
@@ -1124,7 +1114,7 @@ Derived progress/mastery endpoints computed from graded submissions. No material
 ```
 GET /api/students/:id/progress                 — overall + domain + skill breakdown
 GET /api/classes/:id/progress                  — class averages, per-student summary
-GET /api/classes/:id/progress/:domainId        — domain-specific Big 5 breakdown
+GET /api/classes/:id/progress/:domain           — domain-specific Big 5 breakdown (domain is enum value)
 ```
 
 #### 2. Progress service
