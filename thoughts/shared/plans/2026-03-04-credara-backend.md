@@ -631,9 +631,9 @@ Scaffold the TypeScript/Fastify project, configure tooling, establish database c
 - `.gitignore` (node_modules, dist, .env)
 
 #### 2. Install dependencies
-**Runtime:** `fastify`, `@fastify/cookie`, `@fastify/cors`, `drizzle-orm`, `postgres` (pg driver), `zod`, `fastify-type-provider-zod`, `bcrypt`, `dotenv`
+**Runtime:** `fastify`, `@fastify/cookie`, `@fastify/cors`, `drizzle-orm`, `pg` (node-postgres), `zod`, `fastify-type-provider-zod`, `bcrypt`, `dotenv`
 
-**Dev:** `typescript`, `vitest`, `drizzle-kit`, `tsx`, `@types/bcrypt`, `@types/node`
+**Dev:** `typescript`, `vitest`, `drizzle-kit`, `tsx`, `@types/bcrypt`, `@types/node`, `@types/pg`
 
 #### 3. Docker setup
 - `docker-compose.yml` — Postgres 16 container for local dev (see Local Development section)
@@ -654,15 +654,15 @@ Scaffold the TypeScript/Fastify project, configure tooling, establish database c
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `npm run build` compiles without errors
-- [ ] `docker compose up -d` starts Postgres successfully
-- [ ] `npm run dev` starts server and responds to `GET /health` with `{ status: "ok" }`
-- [ ] `npm test` runs and passes (even if just a smoke test)
-- [ ] Database connection succeeds on startup
-- [ ] `docker build .` builds production image successfully
+- [x] `npm run build` compiles without errors
+- [x] `docker compose up -d` starts Postgres successfully
+- [x] `npm run dev` starts server and responds to `GET /health` with `{ status: "ok" }`
+- [x] `npm test` runs and passes (even if just a smoke test)
+- [x] Database connection succeeds on startup
+- [x] `docker build .` builds production image successfully
 
 #### Manual Verification:
-- [ ] Project structure matches the layout described above
+- [x] Project structure matches the layout described above
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for confirmation before proceeding.
 
@@ -686,7 +686,17 @@ npx drizzle-kit generate
 npx drizzle-kit migrate
 ```
 
-#### 3. Seed data script
+#### 3. Wire up database in app lifecycle
+- Create the database (via `createDatabase()`) in `src/index.ts`
+- Register `db` and `pool` on the Fastify instance so routes can access them
+- Add `pool.end()` to the graceful shutdown handler
+
+#### 4. Test database isolation
+- Add `.env.test` with `DATABASE_URL` pointing to a separate `credara_test` database (same Postgres instance, different DB name)
+- Update `src/test/setup.ts` to load `.env.test` instead of `.env` (via `dotenv` with `path` option)
+- Test setup creates the `credara_test` database if it doesn't exist, runs migrations, and tears down between suites
+
+#### 5. Seed data script
 **File:** `src/db/seed.ts`
 
 Seed:
