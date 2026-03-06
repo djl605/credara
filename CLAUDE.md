@@ -49,3 +49,7 @@ Feature-based organization. Each feature module has `routes.ts` (Fastify route d
 - **Skill tracking:** Lessons are tagged with skills (via `lesson_skills`). Skills belong to domains. Mastery percentages are derived at query time from graded submissions — no materialized scores tables.
 - **Sort order:** Tables with `sort_order` use `max + 1` on create, no renumbering on delete, and explicit reorder endpoints that accept an ordered array of IDs.
 - **Assessments:** MC questions are auto-scored on submit. Short answer and writing questions are teacher-graded via a separate grading endpoint.
+
+### Query Patterns
+
+- **Shape data via queries, not code.** Prefer using Drizzle's `columns`, `with`, and `where` options to return the correct shape directly from the database rather than fetching extra data and transforming it in application code (e.g., use `columns: { passwordHash: false }` instead of stripping fields after the query).

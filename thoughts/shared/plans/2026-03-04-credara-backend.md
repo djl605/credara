@@ -826,13 +826,13 @@ If the user already exists (by email), just add a new `user_school_roles` entry 
 
 #### Automated Verification:
 
-- [ ] Auth integration tests pass
-- [ ] User CRUD tests pass
-- [ ] Role hierarchy enforced in tests
+- [x] Auth integration tests pass
+- [x] User CRUD tests pass
+- [x] Role hierarchy enforced in tests
 
 #### Manual Verification:
 
-- [ ] Can log in via curl/httpie and access protected endpoints
+- [x] Can log in via curl/httpie and access protected endpoints
 
 **Implementation Note**: Pause for confirmation before proceeding.
 
