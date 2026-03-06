@@ -9,6 +9,8 @@ import {
 import { config } from "./lib/config.js";
 import { errorHandler } from "./lib/errors.js";
 import type { Database } from "./db/index.js";
+import { authRoutes } from "./features/auth/routes.js";
+import { userRoutes } from "./features/users/routes.js";
 
 interface AppDeps {
   db: Database;
@@ -38,6 +40,9 @@ export function buildApp({ db, dbPool }: AppDeps) {
   app.get("/health", async () => {
     return { status: "ok" };
   });
+
+  app.register(authRoutes);
+  app.register(userRoutes);
 
   return app;
 }
