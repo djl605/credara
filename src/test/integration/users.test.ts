@@ -51,7 +51,7 @@ describe("Users", () => {
       const body = res.json();
       expect(body.email).toBe("newadmin@test.com");
       expect(body.schoolRoles[0].role).toBe("admin");
-      expect(body.schoolRoles[0].schoolId).toBe(school.id);
+      expect(body.schoolRoles[0].school.id).toBe(school.id);
       expect(body.created).toBe(true);
     });
 
@@ -77,7 +77,7 @@ describe("Users", () => {
       expect(res.statusCode).toBe(201);
       const body = res.json();
       expect(body.schoolRoles[0].role).toBe("superadmin");
-      expect(body.schoolRoles[0].schoolId).toBeNull();
+      expect(body.schoolRoles[0].school).toBeNull();
     });
 
     it("admin can create teacher", async () => {
@@ -104,7 +104,7 @@ describe("Users", () => {
       expect(res.statusCode).toBe(201);
       const body = res.json();
       expect(body.schoolRoles[0].role).toBe("teacher");
-      expect(body.schoolRoles[0].schoolId).toBe(school.id);
+      expect(body.schoolRoles[0].school.id).toBe(school.id);
     });
 
     it("admin can create another admin in their school", async () => {
@@ -155,7 +155,7 @@ describe("Users", () => {
       expect(res.statusCode).toBe(201);
       const body = res.json();
       expect(body.schoolRoles[0].role).toBe("student");
-      expect(body.schoolRoles[0].schoolId).toBe(school.id);
+      expect(body.schoolRoles[0].school.id).toBe(school.id);
     });
 
     it("student cannot create users", async () => {

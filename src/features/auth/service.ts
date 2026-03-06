@@ -7,6 +7,7 @@ import {
   createSession,
   deleteSession,
 } from "../../lib/auth.js";
+import type { UserRole } from "../../lib/auth.js";
 import { AppError } from "../../lib/errors.js";
 
 // Lazy bcrypt hash for timing normalization on invalid email login attempts.
@@ -26,7 +27,7 @@ export interface ContextSelectionRequired {
   type: "context_selection_required";
   contexts: {
     id: string;
-    role: string;
+    role: UserRole;
     schoolId: string | null;
     schoolName: string | null;
     firstName: string;

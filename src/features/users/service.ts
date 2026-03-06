@@ -5,6 +5,48 @@ import { hashPassword } from "../../lib/auth.js";
 import { AppError } from "../../lib/errors.js";
 import type { SessionData, UserRole } from "../../lib/auth.js";
 import { ROLE_HIERARCHY } from "../../lib/middleware.js";
+import type { z } from "zod/v4";
+import type { schoolSchema, userWithRolesSchema } from "./schemas.js";
+
+type SchoolResponse = z.infer<typeof schoolSchema>;
+type UserResponse = z.infer<typeof userWithRolesSchema>;
+
+function toUserResponse(raw: {
+  id: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+  schoolRoles: {
+    id: string;
+    userId: string;
+    schoolId: string | null;
+    role: UserRole;
+    firstName: string;
+    lastName: string;
+    createdAt: Date;
+    school: SchoolResponse | null;
+  }[];
+}): UserResponse {
+  return {
+    id: raw.id,
+    email: raw.email,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+    schoolRoles: raw.schoolRoles.map((r) => {
+      const { schoolId: _, school, role, ...base } = r;
+      if (role === "superadmin") {
+        if (school) {
+          throw new AppError(500, `Superadmin role ${r.id} has a school`);
+        }
+        return { ...base, role, school };
+      }
+      if (!school) {
+        throw new AppError(500, `Non-superadmin role ${r.id} has no school`);
+      }
+      return { ...base, role, school };
+    }),
+  };
+}
 
 function getErrorCode(obj: object): unknown {
   return "code" in obj ? obj.code : undefined;
@@ -134,7 +176,7 @@ export async function createUser(
     },
   });
 
-  return { ...result!, created };
+  return { ...toUserResponse(result!), created };
 }
 
 /**
@@ -184,7 +226,7 @@ export async function listUsers(
 
     if (userIdRows.length === 0) return [];
 
-    return db.query.users.findMany({
+    const results = await db.query.users.findMany({
       where: inArray(
         users.id,
         userIdRows.map((r) => r.userId),
@@ -193,6 +235,7 @@ export async function listUsers(
       with: { schoolRoles: { with: { school: true } } },
       orderBy: asc(users.id),
     });
+    return results.map(toUserResponse);
   }
 
   if (!caller.schoolId) {
@@ -219,7 +262,7 @@ export async function listUsers(
 
   if (userIdRows.length === 0) return [];
 
-  return db.query.users.findMany({
+  const results = await db.query.users.findMany({
     where: inArray(
       users.id,
       userIdRows.map((r) => r.userId),
@@ -233,6 +276,7 @@ export async function listUsers(
     },
     orderBy: asc(users.id),
   });
+  return results.map(toUserResponse);
 }
 
 export async function getUser(
@@ -275,7 +319,7 @@ export async function getUser(
     throw new AppError(404, "User not found");
   }
 
-  return user;
+  return toUserResponse(user);
 }
 
 interface UpdateUserInput {
@@ -364,5 +408,5 @@ export async function updateUser(
     throw new AppError(404, "User not found");
   }
 
-  return updated;
+  return toUserResponse(updated);
 }

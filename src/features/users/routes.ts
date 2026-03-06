@@ -3,6 +3,8 @@ import { z } from "zod/v4";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { requireAuth, requireRole } from "../../lib/middleware.js";
 import { createUser, listUsers, getUser, updateUser } from "./service.js";
+import { userRoleEnum } from "../../db/schema.js";
+import { userWithRolesSchema } from "./schemas.js";
 
 export async function userRoutes(app: FastifyInstance) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
@@ -20,11 +22,13 @@ export async function userRoutes(app: FastifyInstance) {
           password: z.string().min(8),
           firstName: z.string().min(1).max(100),
           lastName: z.string().min(1).max(100),
-          role: z
-            .enum(["superadmin", "admin", "teacher", "student"])
-            .optional(),
+          role: z.enum(userRoleEnum.enumValues).optional(),
           schoolId: z.string().uuid().optional(),
         }),
+        response: {
+          200: userWithRolesSchema.extend({ created: z.boolean() }),
+          201: userWithRolesSchema.extend({ created: z.boolean() }),
+        },
       },
     },
     async (request, reply) => {
@@ -42,6 +46,9 @@ export async function userRoutes(app: FastifyInstance) {
           limit: z.coerce.number().int().min(1).max(100).default(50),
           offset: z.coerce.number().int().min(0).default(0),
         }),
+        response: {
+          200: z.array(userWithRolesSchema),
+        },
       },
     },
     async (request) => {
@@ -57,6 +64,9 @@ export async function userRoutes(app: FastifyInstance) {
         params: z.object({
           id: z.string().uuid(),
         }),
+        response: {
+          200: userWithRolesSchema,
+        },
       },
     },
     async (request) => {
@@ -88,6 +98,9 @@ export async function userRoutes(app: FastifyInstance) {
               b.password !== undefined,
             { message: "At least one field to update is required" },
           ),
+        response: {
+          200: userWithRolesSchema,
+        },
       },
     },
     async (request) => {

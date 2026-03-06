@@ -4,6 +4,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { login, logout } from "./service.js";
 import { requireAuth } from "../../lib/middleware.js";
 import { SESSION_COOKIE, COOKIE_OPTIONS } from "../../lib/auth.js";
+import { userRoleEnum } from "../../db/schema.js";
 
 export async function authRoutes(app: FastifyInstance) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
@@ -17,6 +18,27 @@ export async function authRoutes(app: FastifyInstance) {
           password: z.string().min(1),
           userSchoolRoleId: z.string().uuid().optional(),
         }),
+        response: {
+          200: z.discriminatedUnion("type", [
+            z.object({
+              type: z.literal("session_created"),
+              userSchoolRoleId: z.string(),
+            }),
+            z.object({
+              type: z.literal("context_selection_required"),
+              contexts: z.array(
+                z.object({
+                  id: z.string(),
+                  role: z.enum(userRoleEnum.enumValues),
+                  schoolId: z.string().nullable(),
+                  schoolName: z.string().nullable(),
+                  firstName: z.string(),
+                  lastName: z.string(),
+                }),
+              ),
+            }),
+          ]),
+        },
       },
     },
     async (request, reply) => {
@@ -37,7 +59,14 @@ export async function authRoutes(app: FastifyInstance) {
 
   typedApp.post(
     "/api/auth/logout",
-    { preHandler: [requireAuth] },
+    {
+      preHandler: [requireAuth],
+      schema: {
+        response: {
+          200: z.object({ message: z.string() }),
+        },
+      },
+    },
     async (request, reply) => {
       const token = request.cookies[SESSION_COOKIE]!;
       await logout(app.db, token);
@@ -56,7 +85,7 @@ export async function authRoutes(app: FastifyInstance) {
             userId: z.string(),
             email: z.string(),
             userSchoolRoleId: z.string(),
-            role: z.string(),
+            role: z.enum(userRoleEnum.enumValues),
             schoolId: z.string().nullable(),
             firstName: z.string(),
             lastName: z.string(),
